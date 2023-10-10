@@ -53,19 +53,17 @@ func (t *localfs) verifyPath(path string) (string, error) {
 		return c, fmt.Errorf("unsafe or invalid path specified: %w", err)
 	}
 
-	_, error := os.Stat(c)
-	// check if error is "file not exists"
-	if os.IsNotExist(error) {
-		// file does not exist
-		return c, nil
-	}
-
-	// if file exist, check if it is symlink
 	r, err := filepath.EvalSymlinks(c)
 	if err != nil {
-		return c, fmt.Errorf("eval symlink unsafe or invalid path specified: %w", err)
+		if os.IsNotExist(err) {
+			// file does not exist
+			// ok then
+			return c, nil
+		}
+		return c, fmt.Errorf("cannot evaluate symlink: %w", err)
 	}
 
+	// if file exist
 	err = inTrustedRoot(r, t.trustedRoot)
 	if err != nil {
 		return r, fmt.Errorf("unsafe or invalid path specified: %w", err)
