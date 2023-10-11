@@ -121,17 +121,13 @@ func TestLocalStorage(t *testing.T) {
 	}
 
 	if wfs, ok := sfs.(WriteFS); ok {
-		f, err = wfs.Create("new.txt")
+		f, err := wfs.Create("new.txt")
 		if err != nil {
 			t.Error(err)
 		}
-		if w, ok := f.(io.Writer); ok {
-			_, err = w.Write([]byte("new sensation"))
-			if err != nil {
-				t.Error(err)
-			}
-		} else {
-			t.Error("file should support io.Writer interface")
+		_, err = f.Write([]byte("new sensation"))
+		if err != nil {
+			t.Error(err)
 		}
 
 	} else {
