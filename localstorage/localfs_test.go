@@ -62,7 +62,11 @@ func TestLocalStorage(t *testing.T) {
 		return
 	}
 
-	lfs := New(p)
+	lfs := NewLocalFs(p, &Config{
+		CacheSize:     10 * 1024 * 1024,
+		CacheDuration: 0,
+	})
+
 	cnt := 0
 	fs.WalkDir(lfs, ".",
 		func(path string, d fs.DirEntry, err error) error {
@@ -147,6 +151,43 @@ func TestLocalStorage(t *testing.T) {
 		t.Error("wrong read")
 	}
 
-	// TODO: symlink eval test
+	// symlink to target in trusted root dir
+	target := path.Join(p, "subfolder1/symtarget.txt")
+	err = os.WriteFile(target, []byte("target content"), 0750)
+	if err != nil {
+		t.Error(err)
+	}
+	symlink := path.Join(p, "subfolder1/symlink1")
+	err = os.Symlink(target, symlink)
+	if err != nil {
+		t.Error(err)
+	}
+
+	f, err = sfs.Open("symlink1")
+	if err != nil {
+		t.Error(err)
+	}
+	all, err = io.ReadAll(f)
+	if err != nil {
+		t.Error(err)
+	}
+	if !bytes.Equal(all, []byte("target content")) {
+		t.Error("wrong read")
+	}
+
+	// symlink outside of trusted root
+	target = "/etc/passwd"
+	symlink = path.Join(p, "subfolder1/symlink2")
+	err = os.Symlink(target, symlink)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = sfs.Open("symlink2")
+	if err == nil {
+		t.Error("there should be error!")
+	} else {
+		fmt.Println(err)
+	}
 
 }

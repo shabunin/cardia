@@ -7,6 +7,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
+
+	"github.com/ancientlore/cachefs"
+	"github.com/google/uuid"
 )
 
 type WriteFS interface {
@@ -18,18 +22,31 @@ type WriteFS interface {
 // with parse traversal prevention
 // https://www.stackhawk.com/blog/golang-path-traversal-guide-examples-and-prevention/
 type localfs struct {
+	config      *Config
 	trustedRoot string
 	subFs       fs.FS
 }
 
-func New(dir string) fs.FS {
+type Config struct {
+	CacheSize     int64         // size in bytes
+	CacheDuration time.Duration // duration, 0 to disable
+}
+
+func NewLocalFs(dir string, config *Config) fs.FS {
 	if !filepath.IsAbs(dir) {
 		base, _ := os.Getwd()
 		dir = path.Join(base, dir)
 	}
+
 	return &localfs{
+		config:      config,
 		trustedRoot: dir,
-		subFs:       os.DirFS(dir),
+		subFs: cachefs.New(os.DirFS(dir),
+			&cachefs.Config{
+				GroupName:   uuid.NewString(),
+				SizeInBytes: config.CacheSize,
+				Duration:    config.CacheDuration,
+			}),
 	}
 }
 
@@ -87,7 +104,7 @@ func (t *localfs) Sub(name string) (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-	return New(fullPath), nil
+	return NewLocalFs(fullPath, t.config), nil
 }
 
 func (t *localfs) ReadFile(name string) ([]byte, error) {
