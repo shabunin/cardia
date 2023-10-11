@@ -1,0 +1,90 @@
+syntax proto3;
+
+enum UserRoleE {
+    REGULAR = 0;
+    SERVICE = 1;
+    SUPERUSER = 2;
+}
+
+message User {
+    string name = 1;
+    bool enabled = 2;
+    string email = 3;
+    UserRoleE role = 4;
+
+    int64 created = 100;
+    int64 modified = 101;
+}
+
+message ListUsersReq {
+    int64 number = 1;
+    int64 offset = 2;
+    string filter_name = 3;
+    UserRoleE filter_role = 4;
+
+    enum SortField {
+        NAME = 0;
+        ROLE = 1;
+        CREATED = 2;
+        MODIFIED = 3;
+    }
+    enum SortOrder {
+        ASCENDING = 0;
+        DESCENDING = 1;
+    }
+
+    SortField sort_by = 5;
+    SortOrder sort_order = 6;
+}
+message ListUsersRes {
+    int64 total = 1;
+    int64 number = 2;
+    int64 offset = 3;
+    repeated User payload = 4;
+}
+
+
+message GetUserReq {
+    string name = 1;
+}
+message GetUserRes {
+    User user = 1;
+}
+
+message CreateUserReq {
+    User user = 1;
+    string password = 2;
+}
+message CreateUserRes {
+    User user = 1;
+}
+
+message UpdateUserReq {
+    User user = 1;
+}
+message UpdateUserRes {
+    User user = 1;
+}
+
+message DeleteUserReq {
+    string name = 1;
+}
+message DeleteUserRes {
+}
+
+message ChangePasswordReq {
+    string name = 1;
+    string old_password = 2;
+    string new_password = 3;
+}
+message ChangePasswordRes {
+}
+
+service UserManager {
+    rpc List(ListUsersReq) returns(ListUsersRes);
+    rpc Get(GetUserReq) returns(GetUserRes);
+    rpc Create(CreateUserReq) returns(CreateUserRes);
+    rpc Update(UpdateUserReq) returns(UpdateUserRes);
+    rpc Delete(DeleteUserReq) returns(DeleteUserRes);
+    rpc ChangePassword(ChangePasswordReq) returns (ChangePasswordRes);
+}

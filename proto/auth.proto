@@ -1,0 +1,31 @@
+syntax proto3;
+
+message AuthSuccess {
+    string token = 1;
+}
+
+message AuthPasswordReq {
+    string account = 1;
+    string password = 2;
+}
+message AuthPasswordRes {
+    AuthSuccess result = 1;
+}
+
+message AuthPubkeyReq {
+    string account = 1;
+    string pubkey_algorithm = 2;
+    string pubkey_blob = 3;
+    string signature = 3;
+}
+message AuthPubkeyRes {
+    oneof payload {
+        bytes sign_request = 1;
+        AuthSuccess result = 2;
+    }
+}
+
+service AuthenticateServer {
+    rpc AuthenticateWithPassword(AuthPasswordReq) returns (AuthPasswordRes);
+    rpc AuthenticateWithPubkey(stream AuthPubkeyReq) returns (stream AuthPubkeyRes);
+}
