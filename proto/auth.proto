@@ -1,4 +1,4 @@
-syntax proto3;
+syntax = "proto3";
 
 message AuthSuccess {
     string token = 1;
@@ -16,7 +16,7 @@ message AuthPubkeyReq {
     string account = 1;
     string pubkey_algorithm = 2;
     string pubkey_blob = 3;
-    string signature = 3;
+    string signature = 4;
 }
 message AuthPubkeyRes {
     oneof payload {
