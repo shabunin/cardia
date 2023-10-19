@@ -16,6 +16,7 @@ import (
 type WriteFS interface {
 	fs.FS
 	Create(name string) (*os.File, error)
+	Root() string // root path
 }
 
 // localfs should serve isolated directories
@@ -143,4 +144,8 @@ func (t *localfs) Create(name string) (*os.File, error) {
 		return nil, err
 	}
 	return os.Create(fullPath)
+}
+
+func (t *localfs) Root() string {
+	return filepath.Clean(t.trustedRoot)
 }
