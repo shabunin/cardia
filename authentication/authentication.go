@@ -71,11 +71,7 @@ func (a *Authenticator) newTokenForUser(u User) (string, error) {
 }
 
 func (a *Authenticator) AuthenticateWithPassword(username string, password string) (string, error) {
-	phash, err := generateFromPassword([]byte(password), phashCost)
-	if err != nil {
-		return "", err
-	}
-	u, err := selectUserPass(a.db, username, string(phash))
+	u, err := selectUser(a.db, username)
 	if err != nil {
 		return "", err
 	}
@@ -85,9 +81,7 @@ func (a *Authenticator) AuthenticateWithPassword(username string, password strin
 		return "", errors.New("wrong credentials")
 	}
 
-	// TODO return newTokenForUser
-
-	return "", nil
+	return a.newTokenForUser(u.Export())
 }
 
 func (a *Authenticator) AuthenticateWithPubkey(
@@ -95,7 +89,7 @@ func (a *Authenticator) AuthenticateWithPubkey(
 	pubkeyPayload []byte,
 	signCallback func(request []byte) []byte) (string, error) {
 
-	return "", nil
+	return "", errors.New("not implemented")
 }
 
 type Verifier struct {

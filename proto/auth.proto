@@ -17,8 +17,8 @@ message AuthPasswordRes {
 message AuthPubkeyReq {
     string account = 1;
     string pubkey_algorithm = 2;
-    string pubkey_blob = 3;
-    string signature = 4;
+    bytes pubkey_blob = 3;
+    bytes signature = 4;
 }
 message AuthPubkeyRes {
     oneof payload {

@@ -119,26 +119,6 @@ func selectUser(db *dbx.DB, username string) (user, error) {
 	return u, e
 }
 
-func selectUserPass(db *dbx.DB, username string, phash string) (user, error) {
-	var u struct {
-		username string
-		password string
-	}
-	e := db.Select(fieldUserUsername, fieldUserPassword).
-		From(tableUsers).
-		Where(dbx.HashExp{
-			fieldUserUsername: username,
-			fieldUserPassword: phash,
-			fieldUserEnabled:  true,
-		}).
-		One(&u)
-	return user{
-		enabled:  true,
-		username: u.username,
-		password: u.password,
-	}, e
-}
-
 func createUser(db *dbx.DB, u user) error {
 	_, e := db.Insert(tableUsers,
 		dbx.Params{
