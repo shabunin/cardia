@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "github.com/shabunin/cardia/proto";
+
 enum UserRoleE {
     REGULAR = 0;
     SERVICE = 1;

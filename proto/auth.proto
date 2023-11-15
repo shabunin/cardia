@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+option go_package = "github.com/shabunin/cardia/proto";
+
 message AuthSuccess {
     string token = 1;
 }
@@ -25,7 +27,7 @@ message AuthPubkeyRes {
     }
 }
 
-service AuthenticateServer {
-    rpc AuthenticateWithPassword(AuthPasswordReq) returns (AuthPasswordRes);
-    rpc AuthenticateWithPubkey(stream AuthPubkeyReq) returns (stream AuthPubkeyRes);
+service Authentication {
+    rpc PasswordAuth(AuthPasswordReq) returns (AuthPasswordRes);
+    rpc PubkeyAuth(stream AuthPubkeyReq) returns (stream AuthPubkeyRes);
 }
