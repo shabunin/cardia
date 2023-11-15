@@ -7,31 +7,22 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/pocketbase/dbx"
 	"github.com/shabunin/cardia/database"
-	"github.com/shabunin/cardia/user"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/sha3"
 	_ "modernc.org/sqlite"
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 )
 
-type identity struct {
+type identityClaims struct {
 	jwt.RegisteredClaims
-	User string `json:"username"`
+	User string `json:"user"`
 	Role string `json:"role"`
 }
 
-const (
-	roleRegular   string = "regular"
-	roleService   string = "service"
-	roleSuperuser string = "superuser"
-)
-
-const (
-	minCost     = bcrypt.MinCost
-	defaultCost = 12 // ballpark: 250 msec on a modern Intel CPU
-)
+const phashCost = 14
 
 func generateFromPassword(password []byte, cost int) (result []byte, err error) {
 	sum := sha3.Sum512(password)
@@ -57,29 +48,39 @@ func NewAuthenticator(dbpath string) (*Authenticator, error) {
 		return nil, err
 	}
 
+	_ = initUsersTable(db)
+
 	return &Authenticator{db: db}, nil
 }
 
-func (a *Authenticator) newTokenForUser(u user.User) string {
-	id := identity{User: u.Name}
+func (a *Authenticator) newTokenForUser(u User) (string, error) {
+	id := identityClaims{User: u.Name}
 	switch u.Role {
-	case user.Regular:
+	case Regular:
 		id.Role = roleRegular
-	case user.Service:
+	case Service:
 		id.Role = roleService
-	case user.Superuser:
+	case Superuser:
 		id.Role = roleSuperuser
 	}
-	// TODO sign
-	return ""
+	// TODO : customize claims
+	id.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour))
+	token := jwt.NewWithClaims(jwt.SigningMethodRS512, id)
+	ss, err := token.SignedString(a.jwtSigner)
+	return ss, err
 }
 
 func (a *Authenticator) AuthenticateWithPassword(username string, password string) (string, error) {
-	var err error
-	// TODO find user in db
+	phash, err := generateFromPassword([]byte(password), phashCost)
+	if err != nil {
+		return "", err
+	}
+	u, err := selectUserPass(a.db, username, string(phash))
+	if err != nil {
+		return "", err
+	}
 
-	var fromDb []byte
-	err = compareHashAndPassword(fromDb, []byte(password))
+	err = compareHashAndPassword([]byte(u.password), []byte(password))
 	if err != nil {
 		return "", errors.New("wrong credentials")
 	}
@@ -101,19 +102,19 @@ type Verifier struct {
 	jwtVerifier *rsa.PublicKey
 }
 
-func (v *Verifier) VerifyToken(token string) (user.User, error) {
-	parsed, err := jwt.ParseWithClaims(token, &identity{},
+func (v *Verifier) VerifyToken(token string) (User, error) {
+	parsed, err := jwt.ParseWithClaims(token, &identityClaims{},
 		func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 				return nil, errors.New("signing method not supported")
 			}
 			return v.jwtVerifier, nil
 		})
-	if claims, ok := parsed.Claims.(*identity); ok && parsed.Valid {
+	if claims, ok := parsed.Claims.(*identityClaims); ok && parsed.Valid {
 		fmt.Printf("%v %v", claims.User, claims.RegisteredClaims.Issuer)
 		// TODO create User struct
-		return user.User{}, nil
+		return User{}, nil
 	} else {
-		return user.User{}, fmt.Errorf("cannot parse token: %w", err)
+		return User{}, fmt.Errorf("cannot parse token: %w", err)
 	}
 }
